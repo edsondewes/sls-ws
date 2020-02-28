@@ -1,0 +1,89 @@
+service: sls-ws
+
+custom:
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8000
+      migrate: true
+      inMemory: true
+  serverless-offline-sqs:
+    autoCreate: true
+    apiVersion: '2012-11-05'
+    endpoint: http://0.0.0.0:9324
+    accessKeyId: root
+    secretAccessKey: root
+    skipCacheInvalidation: false
+  env-stage: ${opt:stage, "prod"}
+  env-configs:
+    API_URL:
+      prod: AAA
+      dev: http://localhost:3001
+    DDB_URL:
+      prod: AAA
+      dev: http://localhost:8000
+    QUEUE_URL:
+      prod: AAA
+      dev: http://localhost:9324/queue/MessageQueue
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  websocketsApiName: sls-ws
+  websocketsApiRouteSelectionExpression: $request.body.action
+  environment:
+    API_URL: http://localhost:3001
+    DDB_URL: http://localhost:8000
+    QUEUE_URL: http://localhost:9324/queue/MessageQueue
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: prod
+  environment:
+    API_URL: http://localhost:3001
+    DDB_URL: http://localhost:8000
+    QUEUE_URL: http://localhost:9324/queue/MessageQueue
+
+plugins:
+  - serverless-dynamodb-local
+  - serverless-offline-sqs
+  - serverless-offline
+
+functions:
+  connection:
+    handler: handlers/wsHandler.connection
+    events:
+      - websocket:
+          route: $connect
+      - websocket:
+          route: $disconnect
+  
+  message:
+    handler: handlers/wsHandler.message
+    events:
+      - websocket:
+          route: $default
+
+  reply:
+    handler: handlers/wsHandler.reply
+    events:
+      - sqs: arn:aws:sqs:region:XXXXXX:MessageQueue
+
+resources:
+  Resources:
+    usersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: connectionsTable
+        AttributeDefinitions:
+          - AttributeName: connectionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: connectionId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
