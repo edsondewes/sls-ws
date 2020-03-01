@@ -1,30 +1,37 @@
 service: sls-ws
 
+dashboard:
+  component: "@serverless/website"
+  inputs:
+    code:
+      src: dist
+      hook: npm run build
+
 custom:
-  dynamodb:
-    stages:
-      - dev
-    start:
-      port: 8000
-      migrate: true
-      inMemory: true
-  serverless-offline-sqs:
-    autoCreate: true
-    apiVersion: '2012-11-05'
-    endpoint: http://0.0.0.0:9324
-    accessKeyId: root
-    secretAccessKey: root
-    skipCacheInvalidation: false
+  #dynamodb:
+  #  stages:
+  #    - dev
+  #  start:
+  #    port: 8000
+  #    migrate: true
+  #    inMemory: true
+  #serverless-offline-sqs:
+  #  autoCreate: true
+  #  apiVersion: "2012-11-05"
+  #  endpoint: http://0.0.0.0:9324
+  #  accessKeyId: root
+  #  secretAccessKey: root
+  #  skipCacheInvalidation: false
   env-stage: ${opt:stage, "prod"}
   env-configs:
     API_URL:
-      prod: AAA
+      prod: https://gpqiufp5b5.execute-api.us-east-1.amazonaws.com/prod
       dev: http://localhost:3001
     DDB_URL:
       prod: AAA
       dev: http://localhost:8000
     QUEUE_URL:
-      prod: AAA
+      prod: https://sqs.us-east-1.amazonaws.com/528347977406/MessageQueue
       dev: http://localhost:9324/queue/MessageQueue
 
 provider:
@@ -33,23 +40,38 @@ provider:
   stage: dev
   websocketsApiName: sls-ws
   websocketsApiRouteSelectionExpression: $request.body.action
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/connectionsTable"
+    - Effect: "Allow"
+      Action:
+        - "sqs:SendMessage"
+        - "sqs:GetQueueUrl"
+      Resource: "arn:aws:sqs:${self:provider.region}:528347977406:MessageQueue"
+    - Effect: "Allow"
+      Action:
+        - "sqs:ListQueues"
+      Resource: "arn:aws:sqs:${self:provider.region}:528347977406:*"
+    - Effect: Allow
+      Action:
+        - "execute-api:ManageConnections"
+      Resource:
+        - "arn:aws:execute-api:*:*:**/@connections/*"
   environment:
-    API_URL: http://localhost:3001
-    DDB_URL: http://localhost:8000
-    QUEUE_URL: http://localhost:9324/queue/MessageQueue
-
-provider:
-  name: aws
-  runtime: nodejs12.x
-  stage: prod
-  environment:
-    API_URL: http://localhost:3001
-    DDB_URL: http://localhost:8000
-    QUEUE_URL: http://localhost:9324/queue/MessageQueue
+    API_URL: ${self:custom.env-configs.API_URL.${self:custom.env-stage}}
+    DDB_URL: ${self:custom.env-configs.DDB_URL.${self:custom.env-stage}}
+    QUEUE_URL: ${self:custom.env-configs.QUEUE_URL.${self:custom.env-stage}}
 
 plugins:
-  - serverless-dynamodb-local
-  - serverless-offline-sqs
+  #- serverless-dynamodb-local
+  #- serverless-offline-sqs
   - serverless-offline
 
 functions:
@@ -60,7 +82,7 @@ functions:
           route: $connect
       - websocket:
           route: $disconnect
-  
+
   message:
     handler: handlers/wsHandler.message
     events:
@@ -70,7 +92,11 @@ functions:
   reply:
     handler: handlers/wsHandler.reply
     events:
-      - sqs: arn:aws:sqs:region:XXXXXX:MessageQueue
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - MessageQueue
+              - Arn
 
 resources:
   Resources:
@@ -87,3 +113,7 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+    MessageQueue:
+      Type: "AWS::SQS::Queue"
+      Properties:
+        QueueName: "MessageQueue"
