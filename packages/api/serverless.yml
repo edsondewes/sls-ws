@@ -50,6 +50,10 @@ provider:
         - "arn:aws:execute-api:*:*:**/@connections/*"
   environment: ${file(./serverless.${self:custom.stage}.yml):env}
 
+package:
+  exclude:
+    - .dynamodb/**
+
 plugins:
   - serverless-dynamodb-local
   - serverless-offline-sqs
