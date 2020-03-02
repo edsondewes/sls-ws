@@ -22,10 +22,12 @@ const App = () => {
       <input onChange={e => setText(e.target.value)} value={text} />
       <button onClick={() => send(text)}>Enviar</button>
       <ul>
-        {messageList.map((msg, index) => <li key={index}>{msg}</li>)}
+        {messageList.map((msg, index) => (
+          <li key={index}>{msg}</li>
+        ))}
       </ul>
     </>
   );
-}
+};
 
 ReactDOM.render(<App />, document.getElementById("app"));

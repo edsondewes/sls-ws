@@ -1,7 +1,4 @@
-//const socket = new WebSocket('ws://localhost:3001');
-const socket = new WebSocket(
-  "wss://gpqiufp5b5.execute-api.us-east-1.amazonaws.com/prod"
-);
+const socket = new WebSocket(__WS_URL__);
 
 export function send(msg) {
   socket.send(JSON.stringify({ msg }));

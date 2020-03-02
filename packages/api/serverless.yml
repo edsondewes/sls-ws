@@ -1,43 +1,27 @@
 service: sls-ws
 
-dashboard:
-  component: "@serverless/website"
-  inputs:
-    code:
-      src: dist
-      hook: npm run build
-
 custom:
-  #dynamodb:
-  #  stages:
-  #    - dev
-  #  start:
-  #    port: 8000
-  #    migrate: true
-  #    inMemory: true
-  #serverless-offline-sqs:
-  #  autoCreate: true
-  #  apiVersion: "2012-11-05"
-  #  endpoint: http://0.0.0.0:9324
-  #  accessKeyId: root
-  #  secretAccessKey: root
-  #  skipCacheInvalidation: false
-  env-stage: ${opt:stage, "prod"}
-  env-configs:
-    API_URL:
-      prod: https://gpqiufp5b5.execute-api.us-east-1.amazonaws.com/prod
-      dev: http://localhost:3001
-    DDB_URL:
-      prod: AAA
-      dev: http://localhost:8000
-    QUEUE_URL:
-      prod: https://sqs.us-east-1.amazonaws.com/528347977406/MessageQueue
-      dev: http://localhost:9324/queue/MessageQueue
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8000
+      migrate: true
+      inMemory: true
+  serverless-offline-sqs:
+    autoCreate: true
+    apiVersion: "2012-11-05"
+    endpoint: http://0.0.0.0:9324
+    accessKeyId: root
+    secretAccessKey: root
+    skipCacheInvalidation: false
+  stage: ${opt:stage, self:provider.stage}
 
 provider:
   name: aws
   runtime: nodejs12.x
   stage: dev
+  region: us-east-1
   websocketsApiName: sls-ws
   websocketsApiRouteSelectionExpression: $request.body.action
   iamRoleStatements:
@@ -54,29 +38,27 @@ provider:
       Action:
         - "sqs:SendMessage"
         - "sqs:GetQueueUrl"
-      Resource: "arn:aws:sqs:${self:provider.region}:528347977406:MessageQueue"
+      Resource: "arn:aws:sqs:${self:provider.region}:*:MessageQueue"
     - Effect: "Allow"
       Action:
         - "sqs:ListQueues"
-      Resource: "arn:aws:sqs:${self:provider.region}:528347977406:*"
+      Resource: "arn:aws:sqs:${self:provider.region}:*:*"
     - Effect: Allow
       Action:
         - "execute-api:ManageConnections"
       Resource:
         - "arn:aws:execute-api:*:*:**/@connections/*"
-  environment:
-    API_URL: ${self:custom.env-configs.API_URL.${self:custom.env-stage}}
-    DDB_URL: ${self:custom.env-configs.DDB_URL.${self:custom.env-stage}}
-    QUEUE_URL: ${self:custom.env-configs.QUEUE_URL.${self:custom.env-stage}}
+  environment: ${file(./serverless.${self:custom.stage}.yml):env}
 
 plugins:
-  #- serverless-dynamodb-local
-  #- serverless-offline-sqs
+  - serverless-dynamodb-local
+  - serverless-offline-sqs
+  - serverless-pseudo-parameters
   - serverless-offline
 
 functions:
   connection:
-    handler: handlers/wsHandler.connection
+    handler: src/wsHandler.connection
     events:
       - websocket:
           route: $connect
@@ -84,13 +66,13 @@ functions:
           route: $disconnect
 
   message:
-    handler: handlers/wsHandler.message
+    handler: src/wsHandler.message
     events:
       - websocket:
           route: $default
 
   reply:
-    handler: handlers/wsHandler.reply
+    handler: src/wsHandler.reply
     events:
       - sqs:
           arn:

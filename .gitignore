@@ -8,3 +8,5 @@ jspm_packages
 
 # Build directories
 dist
+
+.DS_STORE

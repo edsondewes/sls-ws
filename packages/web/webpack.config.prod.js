@@ -9,22 +9,22 @@ module.exports = env => {
     output: {
       filename: "bundle.js",
       path: path.resolve(__dirname, "./dist", "js"),
-      publicPath: "/js/"
+      publicPath: "/js/",
     },
     module: {
       rules: [
         {
           test: /\.js?$/,
           use: ["babel-loader"],
-          exclude: /node_modules/
-        }
-      ]
+          exclude: /node_modules/,
+        },
+      ],
     },
     plugins: [
-      //new webpack.DefinePlugin({
-      //  __API_URL__: JSON.stringify(env.API_URL)
-      //}),
-      new CopyWebpackPlugin([{ from: "./public", to: "../" }])
-    ]
+      new webpack.DefinePlugin({
+        __WS_URL__: JSON.stringify(env.WS_URL),
+      }),
+      new CopyWebpackPlugin([{ from: "./public", to: "../" }]),
+    ],
   };
 };

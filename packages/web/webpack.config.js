@@ -1,4 +1,5 @@
 const path = require("path");
+const webpack = require("webpack");
 
 module.exports = {
   mode: "development",
@@ -18,6 +19,11 @@ module.exports = {
       },
     ],
   },
+  plugins: [
+    new webpack.DefinePlugin({
+      __WS_URL__: JSON.stringify("ws://localhost:3001"),
+    }),
+  ],
   devServer: {
     contentBase: "./public",
     host: "0.0.0.0",
