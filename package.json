@@ -27,6 +27,6 @@
   },
   "dependencies": {
     "aws-sdk": "^2.628.0",
-    "redis": "^3.0.2"
+    "axios": "^0.19.2"
   }
 }

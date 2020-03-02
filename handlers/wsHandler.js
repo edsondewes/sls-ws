@@ -1,6 +1,7 @@
 "use strict";
 const AWS = require("aws-sdk");
 const redis = require("./dynamo-connection");
+const axios = require("axios").default;
 
 const apiGatewayClient = new AWS.ApiGatewayManagementApi({
   apiVersion: "2018-11-29",
@@ -39,11 +40,18 @@ module.exports.reply = async event => {
   const connections = await redis.list();
 
   for (const message of event.Records) {
+    const jsonMessage = JSON.parse(message.body);
+    const translation = await translate(jsonMessage.msg);
+
+    const replyData = JSON.stringify({
+      msg: translation
+    });
+
     for (const item of connections.Items) {
       await apiGatewayClient
         .postToConnection({
           ConnectionId: item.connectionId,
-          Data: message.body
+          Data: replyData
         })
         .promise();
     }
@@ -53,3 +61,21 @@ module.exports.reply = async event => {
     statusCode: 200
   };
 };
+
+async function translate(text) {
+  try {
+    const response = await axios.get(
+      "https://api.mymemory.translated.net/get",
+      {
+        params: {
+          q: text,
+          langpair: "pt-BR|en"
+        }
+      }
+    );
+
+    return response.data.matches[0].translation;
+  } catch {
+    return text;
+  }
+}
