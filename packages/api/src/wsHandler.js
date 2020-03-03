@@ -2,6 +2,7 @@
 const AWS = require("aws-sdk");
 const ddb = require("./dynamo-connection");
 const axios = require("axios").default;
+const logger = require("./logger");
 
 const apiGatewayClient = new AWS.ApiGatewayManagementApi({
   apiVersion: "2018-11-29",
@@ -75,7 +76,8 @@ async function translate(text) {
     );
 
     return response.data.matches[0].translation;
-  } catch {
+  } catch (ex) {
+    logger.error("translate", { exception: ex });
     return text;
   }
 }
