@@ -48,7 +48,15 @@ provider:
         - "execute-api:ManageConnections"
       Resource:
         - "arn:aws:execute-api:*:*:**/@connections/*"
+    - Effect: Allow
+      Action:
+        - "xray:PutTraceSegments"
+        - "xray:PutTelemetryRecords"
+      Resource: "*"
   environment: ${file(./serverless.${self:custom.stage}.yml):env}
+  tracing:
+    apiGateway: true
+    lambda: true
 
 package:
   exclude:

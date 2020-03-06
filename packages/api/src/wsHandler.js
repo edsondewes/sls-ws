@@ -1,5 +1,5 @@
 "use strict";
-const AWS = require("aws-sdk");
+const AWS = require("./aws");
 const ddb = require("./dynamo-connection");
 const axios = require("axios").default;
 const logger = require("./logger");

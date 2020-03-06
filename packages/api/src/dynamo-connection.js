@@ -1,5 +1,5 @@
 "use strict";
-const AWS = require("aws-sdk");
+const AWS = require("./aws");
 
 const client = new AWS.DynamoDB.DocumentClient({
   region: process.env.AWS_REGION,
